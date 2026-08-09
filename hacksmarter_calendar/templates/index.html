@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HackSmarter Calendar Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 3px solid #00ff88;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            color: #888;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .month-selector, .theme-selector {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        button {
+            background: #00ff88;
+            color: #0a0a0a;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #00cc6e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #333;
+            color: #fff;
+        }
+        
+        .btn-secondary:hover {
+            background: #444;
+        }
+        
+        select, input[type="text"], input[type="time"], textarea {
+            background: #0a0a0a;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        select {
+            cursor: pointer;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .day-header {
+            background: #1a1a1a;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #00ff88;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        
+        .day-cell {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            min-height: 120px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .day-cell:hover {
+            border-color: #00ff88;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2);
+        }
+        
+        .day-cell.empty {
+            background: #0f0f0f;
+            cursor: default;
+        }
+        
+        .day-cell.empty:hover {
+            transform: none;
+            border-color: #333;
+        }
+        
+        .day-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .weekend .day-number {
+            color: #00ff88;
+        }
+        
+        .event {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid #00ff88;
+            padding: 5px 8px;
+            margin: 5px 0;
+            font-size: 12px;
+            border-radius: 3px;
+            position: relative;
+        }
+        
+        .event:hover {
+            background: rgba(0, 255, 136, 0.3);
+        }
+        
+        .event-time {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .event-delete {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            color: #ff4444;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .event:hover .event-delete {
+            display: block;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00ff88;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .generate-section {
+            text-align: center;
+            padding: 30px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        .generate-btn {
+            font-size: 20px;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6e 100%);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ HACKSMARTER CALENDAR</h1>
+            <p class="tagline">// hack smarter not harder</p>
+        </header>
+        
+        <div class="controls">
+            <div class="month-selector">
+                <button onclick="prevMonth()" class="btn-secondary">← Prev</button>
+                <select id="monthSelect" onchange="changeMonth()">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <select id="yearSelect" onchange="changeMonth()">
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                </select>
+                <button onclick="nextMonth()" class="btn-secondary">Next →</button>
+            </div>
+            <div class="theme-selector">
+                <label for="themeSelect" style="color: #888; margin-right: 10px;">Theme:</label>
+                <select id="themeSelect" style="min-width: 200px;">
+                    <option value="hacker_green">Hacker Green</option>
+                    <option value="cyberpunk_purple">Cyberpunk Purple</option>
+                    <option value="electric_blue">Electric Blue</option>
+                    <option value="hot_pink">Hot Pink</option>
+                    <option value="matrix_green">Matrix Green</option>
+                    <option value="orange_fire">Orange Fire</option>
+                    <option value="neon_yellow">Neon Yellow</option>
+                    <option value="red_alert">Red Alert</option>
+                    <option value="crimson_red">Crimson Red</option>
+                    <option value="white_minimal">White Minimal</option>
+                </select>
+            </div>
+            <button onclick="clearAllEvents()" class="btn-secondary">Clear All Events</button>
+        </div>
+        
+        <div class="calendar-grid" id="calendar">
+            <!-- Calendar will be generated here -->
+        </div>
+        
+        <div class="generate-section">
+            <h2 style="color: #00ff88; margin-bottom: 20px;">📥 DOWNLOAD OPTIONS</h2>
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <button onclick="generateMonthlyPNG()" class="generate-btn">MONTHLY CALENDAR</button>
+                    <p style="color: #888; margin-top: 10px; font-size: 14px;">Full month view with all events</p>
+                </div>
+                <div style="text-align: center;">
+                    <button onclick="generateWeeklyPNG()" class="generate-btn" style="background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);">WEEKLY SCHEDULE</button>
+                    <p style="color: #888; margin-top: 10px; font-size: 14px;">Detailed week view (current week)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Event Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add Event</div>
+            <div class="form-group">
+                <label>Event Title *</label>
+                <input type="text" id="eventTitle" placeholder="Meeting, Birthday, etc.">
+            </div>
+            <div class="form-group">
+                <label>Time (optional)</label>
+                <input type="time" id="eventTime">
+            </div>
+            <div class="form-group">
+                <label>Description (optional)</label>
+                <textarea id="eventDescription" placeholder="Additional details..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveEvent()">Save Event</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentMonth = 2;  // February
+        let currentYear = 2026;
+        let currentEvents = {};
+        let selectedDate = null;
+        
+        const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // Security: Sanitize HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Validate date format YYYY-MM-DD
+        function validateDate(dateStr) {
+            const pattern = /^\d{4}-\d{2}-\d{2}$/;
+            if (!pattern.test(dateStr)) return false;
+            const date = new Date(dateStr);
+            return date instanceof Date && !isNaN(date);
+        }
+        
+        // Validate time format HH:MM
+        function validateTime(timeStr) {
+            if (!timeStr) return true;
+            const pattern = /^\d{2}:\d{2}$/;
+            if (!pattern.test(timeStr)) return false;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+        }
+        
+        // Validate year and month
+        function validateMonthYear(month, year) {
+            return month >= 1 && month <= 12 && year >= 1900 && year <= 2100;
+        }
+        
+        function initCalendar() {
+            document.getElementById('monthSelect').value = currentMonth;
+            document.getElementById('yearSelect').value = currentYear;
+            loadCalendar();
+        }
+        
+        async function loadCalendar() {
+            if (!validateMonthYear(currentMonth, currentYear)) {
+                console.error('Invalid month or year');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/calendar/${currentYear}/${currentMonth}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load calendar');
+                }
+                const data = await response.json();
+                currentEvents = data.events || {};
+                renderCalendar(data);
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+                alert('Failed to load calendar. Please try again.');
+            }
+        }
+        
+        function renderCalendar(data) {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            // Day headers
+            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+            days.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+            
+            // Calendar days
+            data.weeks.forEach(week => {
+                week.forEach((day, index) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+                    
+                    if (day === 0) {
+                        cell.classList.add('empty');
+                    } else {
+                        if (index >= 5) cell.classList.add('weekend');
+                        
+                        const dayNum = document.createElement('div');
+                        dayNum.className = 'day-number';
+                        dayNum.textContent = day;
+                        cell.appendChild(dayNum);
+                        
+                        const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        
+                        // Add events
+                        if (currentEvents[dateKey]) {
+                            currentEvents[dateKey].forEach((event, eventIndex) => {
+                                const eventDiv = document.createElement('div');
+                                eventDiv.className = 'event';
+                                
+                                // Sanitize event data
+                                const safeTitle = escapeHtml(event.title || '');
+                                const safeTime = event.time ? escapeHtml(event.time) : '';
+                                
+                                eventDiv.innerHTML = `
+                                    ${safeTime ? `<span class="event-time">${safeTime}</span> ` : ''}
+                                    ${safeTitle}
+                                    <span class="event-delete" onclick="deleteEvent('${dateKey}', ${eventIndex}); event.stopPropagation();">✕</span>
+                                `;
+                                cell.appendChild(eventDiv);
+                            });
+                        }
+                        
+                        cell.onclick = () => openModal(dateKey, day);
+                    }
+                    
+                    calendar.appendChild(cell);
+                });
+            });
+        }
+        
+        function openModal(dateKey, day) {
+            selectedDate = dateKey;
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventTime').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventModal').classList.add('active');
+            document.getElementById('eventModal').querySelector('.modal-header').textContent = 
+                `Add Event - ${monthNames[currentMonth]} ${day}, ${currentYear}`;
+        }
+        
+        function closeModal() {
+            document.getElementById('eventModal').classList.remove('active');
+        }
+        
+        async function saveEvent() {
+            const title = document.getElementById('eventTitle').value.trim();
+            const time = document.getElementById('eventTime').value.trim();
+            const description = document.getElementById('eventDescription').value.trim();
+            
+            // Validate inputs
+            if (!title) {
+                alert('Please enter an event title');
+                return;
+            }
+            
+            if (title.length > 200) {
+                alert('Event title is too long (max 200 characters)');
+                return;
+            }
+            
+            if (time && !validateTime(time)) {
+                alert('Invalid time format. Use HH:MM');
+                return;
+            }
+            
+            if (description.length > 500) {
+                alert('Description is too long (max 500 characters)');
+                return;
+            }
+            
+            if (!validateDate(selectedDate)) {
+                alert('Invalid date');
+                return;
+            }
+            
+            const event = {
+                date: selectedDate,
+                title: title,
+                time: time,
+                description: description
+            };
+            
+            try {
+                const response = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(event)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save event');
+                }
+                
+                closeModal();
+                await loadCalendar();
+            } catch (error) {
+                console.error('Error saving event:', error);
+                alert(error.message || 'Failed to save event. Please try again.');
+            }
+        }
+        
+        async function deleteEvent(date, index) {
+            if (!confirm('Delete this event?')) return;
+            
+            if (!validateDate(date)) {
+                alert('Invalid date');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/events', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date, index })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete event');
+                }
+                
+                await loadCalendar();
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                alert('Failed to delete event. Please try again.');
+            }
+        }
+        
+        function clearAllEvents() {
+            if (!confirm('Clear all events from this calendar?')) return;
+            currentEvents = {};
+            loadCalendar();
+        }
+        
+        function prevMonth() {
+            currentMonth--;
+            if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            initCalendar();
+        }
+        
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+            initCalendar();
+        }
+        
+        function changeMonth() {
+            currentMonth = parseInt(document.getElementById('monthSelect').value);
+            currentYear = parseInt(document.getElementById('yearSelect').value);
+            loadCalendar();
+        }
+        
+        async function generateMonthlyPNG() {
+            if (!validateMonthYear(currentMonth, currentYear)) {
+                alert('Invalid month or year');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Generating...';
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            try {
+                const theme = document.getElementById('themeSelect').value;
+                const response = await fetch(`/api/generate/${currentYear}/${currentMonth}?theme=${theme}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to generate PNG');
+                }
+                
+                const blob = await response.blob();
+                
+                if (blob.type !== 'image/png') {
+                    throw new Error('Invalid file type received');
+                }
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `HackSmarter_${monthNames[currentMonth]}_${currentYear}_${theme}.png`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                btn.textContent = '✓ Downloaded!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Error generating PNG:', error);
+                alert(error.message || 'Error generating PNG. Please try again.');
+                btn.textContent = originalText;
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+        
+        async function generateWeeklyPNG() {
+            if (!validateMonthYear(currentMonth, currentYear)) {
+                alert('Invalid month or year');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Generating...';
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            try {
+                const theme = document.getElementById('themeSelect').value;
+                // Get first day of current month for weekly schedule
+                const response = await fetch(`/api/generate/weekly/${currentYear}/${currentMonth}/1?theme=${theme}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to generate weekly schedule');
+                }
+                
+                const blob = await response.blob();
+                
+                if (blob.type !== 'image/png') {
+                    throw new Error('Invalid file type received');
+                }
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `HackSmarter_Weekly_${monthNames[currentMonth]}_${currentYear}_${theme}.png`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                btn.textContent = '✓ Downloaded!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Error generating weekly schedule:', error);
+                alert(error.message || 'Error generating weekly schedule. Please try again.');
+                btn.textContent = originalText;
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('eventModal').addEventListener('click', (e) => {
+            if (e.target.id === 'eventModal') closeModal();
+        });
+        
+        // Initialize
+        initCalendar();
+    </script>
+</body>
+</html>
