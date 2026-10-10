@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "HackSmarter", email = "contact@hacksmarter.io"}
+    {name = "HackSmarter", email = "ctf@hacksmarter.com"}
 ]
 keywords = ["calendar", "schedule", "planner", "hacksmarter", "cybersecurity"]
 classifiers = [

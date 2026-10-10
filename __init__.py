@@ -5,7 +5,7 @@ A professional calendar and weekly schedule generator with multiple themes
 
 __version__ = "1.0.0"
 __author__ = "HackSmarter"
-__email__ = "contact@hacksmarter.io"
+__email__ = "@ctf@hacksmarter.com"
 
 from hacksmarter_calendar.app import (
     HackSmarterCalendar,
