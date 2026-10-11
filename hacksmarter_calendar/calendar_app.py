@@ -20,6 +20,7 @@ import html
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max request size
+LOGO_PATH = os.path.join(os.path.dirname(__file__), 'static', 'logo.png')
 
 # Store events in memory (in production, use a database)
 events_store = {}
@@ -823,13 +824,9 @@ def generate_weekly_schedule(year, month, day):
         output_file = os.path.join(output_dir, filename)
         
         # Logo path
-        logo_path = os.path.join('/mnt/user-data/uploads', '3625.png')
-        if theme == 'white_minimal':
-            logo_path = os.path.join('/mnt/user-data/uploads', '3623.png')
-        
         # Create weekly schedule
         schedule = WeeklySchedule(start_date, events_store, theme=theme)
-        result_file = schedule.create_schedule(output_file, logo_path)
+        result_file = schedule.create_schedule(output_file, LOGO_PATH)
         
         # Verify file was created
         if not os.path.exists(result_file):
@@ -874,14 +871,8 @@ def generate_calendar(year, month):
         output_file = os.path.join(output_dir, filename)
         
         # Logo paths
-        logo_path_light = os.path.join('/mnt/user-data/uploads', '3623.png')
-        logo_path_dark = os.path.join('/mnt/user-data/uploads', '3625.png')
-        
-        # Determine logo style based on theme
-        logo_style = 'light' if theme == 'white_minimal' else 'dark'
-        
-        cal = HackSmarterCalendar(month, year, events_store, theme=theme, logo_style=logo_style)
-        result_file = cal.create_calendar(output_file, logo_path_light, logo_path_dark)
+        cal = HackSmarterCalendar(month, year, events_store, theme=theme)
+        result_file = cal.create_calendar(output_file, LOGO_PATH, LOGO_PATH)
         
         # Verify file was created
         if not os.path.exists(result_file):
