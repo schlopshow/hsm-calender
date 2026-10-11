@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HackSmarter Calendar Editor</title>
     <style>
+        :root {
+            --accent-color: #00ff88;
+            --page-background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            --surface-color: #1a1a1a;
+            --cell-color: #1a1a1a;
+            --input-color: #0a0a0a;
+            --border-color: #333;
+            --text-color: #ffffff;
+            --muted-color: #888;
+            --event-background: rgba(0, 255, 136, 0.2);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,8 +25,8 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-            color: #ffffff;
+            background: var(--page-background);
+            color: var(--text-color);
             min-height: 100vh;
             padding: 20px;
         }
@@ -27,19 +39,19 @@
         header {
             text-align: center;
             padding: 30px 0;
-            border-bottom: 3px solid #00ff88;
+            border-bottom: 3px solid var(--accent-color);
             margin-bottom: 30px;
         }
         
         h1 {
             font-size: 3em;
-            color: #00ff88;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            color: var(--accent-color);
+            text-shadow: 0 0 20px var(--accent-color);
             margin-bottom: 10px;
         }
         
         .tagline {
-            color: #888;
+            color: var(--muted-color);
             font-family: 'Courier New', monospace;
             font-size: 1.2em;
         }
@@ -49,10 +61,10 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            background: #1a1a1a;
+            background: var(--surface-color);
             padding: 20px;
             border-radius: 10px;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
             flex-wrap: wrap;
             gap: 15px;
         }
@@ -64,8 +76,8 @@
         }
         
         button {
-            background: #00ff88;
-            color: #0a0a0a;
+            background: var(--accent-color);
+            color: var(--input-color);
             border: none;
             padding: 12px 24px;
             border-radius: 5px;
@@ -91,9 +103,9 @@
         }
         
         select, input[type="text"], input[type="time"], textarea {
-            background: #0a0a0a;
-            color: #fff;
-            border: 1px solid #333;
+            background: var(--input-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
             padding: 10px;
             border-radius: 5px;
             font-size: 16px;
@@ -111,18 +123,18 @@
         }
         
         .day-header {
-            background: #1a1a1a;
+            background: var(--surface-color);
             padding: 15px;
             text-align: center;
             font-weight: bold;
-            color: #00ff88;
+            color: var(--accent-color);
             border-radius: 5px;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
         }
         
         .day-cell {
-            background: #1a1a1a;
-            border: 1px solid #333;
+            background: var(--cell-color);
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             min-height: 120px;
             padding: 10px;
@@ -132,13 +144,13 @@
         }
         
         .day-cell:hover {
-            border-color: #00ff88;
+            border-color: var(--accent-color);
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2);
         }
         
         .day-cell.empty {
-            background: #0f0f0f;
+            background: var(--input-color);
             cursor: default;
         }
         
@@ -151,15 +163,16 @@
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
+            color: var(--text-color);
         }
         
         .weekend .day-number {
-            color: #00ff88;
+            color: var(--accent-color);
         }
         
         .event {
-            background: rgba(0, 255, 136, 0.2);
-            border-left: 3px solid #00ff88;
+            background: var(--event-background);
+            border-left: 3px solid var(--accent-color);
             padding: 5px 8px;
             margin: 5px 0;
             font-size: 12px;
@@ -173,7 +186,7 @@
         
         .event-time {
             font-weight: bold;
-            color: #00ff88;
+            color: var(--accent-color);
         }
         
         .event-delete {
@@ -189,7 +202,65 @@
         .event:hover .event-delete {
             display: block;
         }
-        
+
+        .day-details-panel {
+            display: none;
+            position: relative;
+            z-index: 10;
+            margin: 0 0 18px;
+            padding: 20px;
+            background: var(--surface-color);
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        .day-details-panel.active {
+            display: block;
+        }
+
+        .day-details-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            color: var(--accent-color);
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 14px;
+        }
+
+        .day-event {
+            background: var(--event-background);
+            border-left: 3px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .day-event-title {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .day-event-time {
+            color: var(--text-color);
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .day-event-description {
+            color: var(--muted-color);
+            margin-top: 6px;
+            white-space: pre-wrap;
+        }
+
+        .empty-day {
+            color: var(--muted-color);
+            padding: 12px 0;
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -209,10 +280,10 @@
         }
         
         .modal-content {
-            background: #1a1a1a;
+            background: var(--surface-color);
             padding: 30px;
             border-radius: 10px;
-            border: 2px solid #00ff88;
+            border: 2px solid var(--accent-color);
             max-width: 500px;
             width: 90%;
         }
@@ -220,7 +291,7 @@
         .modal-header {
             font-size: 24px;
             margin-bottom: 20px;
-            color: #00ff88;
+            color: var(--accent-color);
         }
         
         .form-group {
@@ -252,15 +323,15 @@
         .generate-section {
             text-align: center;
             padding: 30px;
-            background: #1a1a1a;
+            background: var(--surface-color);
             border-radius: 10px;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
         }
         
         .generate-btn {
             font-size: 20px;
             padding: 15px 40px;
-            background: linear-gradient(135deg, #00ff88 0%, #00cc6e 100%);
+            background: var(--accent-color);
         }
         
         @keyframes pulse {
@@ -308,7 +379,7 @@
             </div>
             <div class="theme-selector">
                 <label for="themeSelect" style="color: #888; margin-right: 10px;">Theme:</label>
-                <select id="themeSelect" style="min-width: 200px;">
+                <select id="themeSelect" onchange="changeTheme()" style="min-width: 200px;">
                     <option value="hacker_green">Hacker Green</option>
                     <option value="cyberpunk_purple">Cyberpunk Purple</option>
                     <option value="electric_blue">Electric Blue</option>
@@ -324,6 +395,14 @@
             <button onclick="clearAllEvents()" class="btn-secondary">Clear All Events</button>
         </div>
         
+        <div class="day-details-panel" id="dayDetailsPanel">
+            <div class="day-details-panel-header">
+                <span id="dayDetailsHeader">Day details</span>
+                <button type="button" class="btn-secondary" onclick="closeDayDetails()">Close</button>
+            </div>
+            <div id="dayDetails"></div>
+        </div>
+
         <div class="calendar-grid" id="calendar">
             <!-- Calendar will be generated here -->
         </div>
@@ -332,11 +411,11 @@
             <h2 style="color: #00ff88; margin-bottom: 20px;">📥 DOWNLOAD OPTIONS</h2>
             <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
                 <div style="text-align: center;">
-                    <button onclick="generateMonthlyPNG()" class="generate-btn">MONTHLY CALENDAR</button>
+                    <button onclick="generateMonthlyPNG(this)" class="generate-btn">MONTHLY CALENDAR</button>
                     <p style="color: #888; margin-top: 10px; font-size: 14px;">Full month view with all events</p>
                 </div>
                 <div style="text-align: center;">
-                    <button onclick="generateWeeklyPNG()" class="generate-btn" style="background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);">WEEKLY SCHEDULE</button>
+                    <button onclick="generateWeeklyPNG(this)" class="generate-btn" style="background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);">WEEKLY SCHEDULE</button>
                     <p style="color: #888; margin-top: 10px; font-size: 14px;">Detailed week view (current week)</p>
                 </div>
             </div>
@@ -364,13 +443,81 @@
                 <button onclick="saveEvent()">Save Event</button>
             </div>
         </div>
+
     </div>
     
     <script>
-        let currentMonth = 2;  // February
-        let currentYear = 2026;
+        let currentMonth = new Date().getMonth() + 1;
+        let currentYear = new Date().getFullYear();
         let currentEvents = {};
         let selectedDate = null;
+
+        const themes = {
+            hacker_green: {
+                accent: '#00ff88', page: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
+                surface: '#1a1a1a', cell: '#1a1a1a', input: '#0a0a0a',
+                border: '#333333', text: '#ffffff', muted: '#888888'
+            },
+            cyberpunk_purple: {
+                accent: '#ff00ff', page: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%)',
+                surface: '#1a0a1a', cell: '#1a0a1a', input: '#0a0a0a',
+                border: '#4a1a4a', text: '#ffffff', muted: '#bb88bb'
+            },
+            electric_blue: {
+                accent: '#00d4ff', page: 'linear-gradient(135deg, #0a0a0a 0%, #0a1a2a 100%)',
+                surface: '#0a1a2a', cell: '#0a1a2a', input: '#0a0a0a',
+                border: '#1a4a6a', text: '#ffffff', muted: '#88bbcc'
+            },
+            hot_pink: {
+                accent: '#ff0066', page: 'linear-gradient(135deg, #0a0a0a 0%, #2a0a1a 100%)',
+                surface: '#1a0a0f', cell: '#1a0a0f', input: '#0a0a0a',
+                border: '#4a1a2a', text: '#ffffff', muted: '#cc88aa'
+            },
+            matrix_green: {
+                accent: '#00ff00', page: 'linear-gradient(135deg, #000000 0%, #001100 100%)',
+                surface: '#001100', cell: '#001100', input: '#000000',
+                border: '#003300', text: '#00ff00', muted: '#66aa66'
+            },
+            orange_fire: {
+                accent: '#ff6600', page: 'linear-gradient(135deg, #0a0a0a 0%, #2a1a0a 100%)',
+                surface: '#1a0f0a', cell: '#1a0f0a', input: '#0a0a0a',
+                border: '#4a3a1a', text: '#ffffff', muted: '#cc9966'
+            },
+            neon_yellow: {
+                accent: '#ffff00', page: 'linear-gradient(135deg, #0a0a0a 0%, #2a2a0a 100%)',
+                surface: '#1a1a0a', cell: '#1a1a0a', input: '#0a0a0a',
+                border: '#4a4a1a', text: '#ffffff', muted: '#cccc66'
+            },
+            red_alert: {
+                accent: '#ff0000', page: 'linear-gradient(135deg, #0a0a0a 0%, #2a0a0a 100%)',
+                surface: '#1a0a0a', cell: '#1a0a0a', input: '#0a0a0a',
+                border: '#4a1a1a', text: '#ffffff', muted: '#cc8888'
+            },
+            crimson_red: {
+                accent: '#dc143c', page: 'linear-gradient(135deg, #0a0000 0%, #1a0505 100%)',
+                surface: '#150505', cell: '#150505', input: '#0a0000',
+                border: '#4a0a0a', text: '#ffffff', muted: '#cc8888'
+            },
+            white_minimal: {
+                accent: '#000000', page: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+                surface: '#f5f5f5', cell: '#fafafa', input: '#ffffff',
+                border: '#cccccc', text: '#000000', muted: '#666666'
+            }
+        };
+
+        function changeTheme() {
+            const theme = themes[document.getElementById('themeSelect').value] || themes.hacker_green;
+            const root = document.documentElement;
+            root.style.setProperty('--accent-color', theme.accent);
+            root.style.setProperty('--page-background', theme.page);
+            root.style.setProperty('--surface-color', theme.surface);
+            root.style.setProperty('--cell-color', theme.cell);
+            root.style.setProperty('--input-color', theme.input);
+            root.style.setProperty('--border-color', theme.border);
+            root.style.setProperty('--text-color', theme.text);
+            root.style.setProperty('--muted-color', theme.muted);
+            root.style.setProperty('--event-background', `${theme.accent}33`);
+        }
         
         const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
                            'July', 'August', 'September', 'October', 'November', 'December'];
@@ -433,6 +580,7 @@
         function renderCalendar(data) {
             const calendar = document.getElementById('calendar');
             calendar.innerHTML = '';
+            closeDayDetails();
             
             // Day headers
             const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -452,6 +600,7 @@
                     if (day === 0) {
                         cell.classList.add('empty');
                     } else {
+                        cell.dataset.date = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         if (index >= 5) cell.classList.add('weekend');
                         
                         const dayNum = document.createElement('div');
@@ -474,19 +623,31 @@
                                 eventDiv.innerHTML = `
                                     ${safeTime ? `<span class="event-time">${safeTime}</span> ` : ''}
                                     ${safeTitle}
-                                    <span class="event-delete" onclick="deleteEvent('${dateKey}', ${eventIndex}); event.stopPropagation();">✕</span>
                                 `;
+                                const deleteButton = document.createElement('span');
+                                deleteButton.className = 'event-delete';
+                                deleteButton.textContent = '✕';
+                                deleteButton.addEventListener('click', (eventClick) => {
+                                    eventClick.stopPropagation();
+                                    deleteEvent(dateKey, eventIndex);
+                                });
+                                eventDiv.appendChild(deleteButton);
                                 cell.appendChild(eventDiv);
                             });
                         }
-                        
-                        cell.onclick = () => openModal(dateKey, day);
+                        cell.addEventListener('click', (eventClick) => {
+                            if (eventClick.target.closest('.event-delete')) return;
+                            openDayDetails(dateKey, day);
+                        });
+
+
                     }
                     
                     calendar.appendChild(cell);
                 });
             });
         }
+
         
         function openModal(dateKey, day) {
             selectedDate = dateKey;
@@ -497,7 +658,49 @@
             document.getElementById('eventModal').querySelector('.modal-header').textContent = 
                 `Add Event - ${monthNames[currentMonth]} ${day}, ${currentYear}`;
         }
-        
+
+        function openDayDetails(dateKey, day) {
+            const details = document.getElementById('dayDetails');
+            document.getElementById('dayDetailsHeader').textContent =
+                `${monthNames[currentMonth]} ${day}, ${currentYear}`;
+            const events = currentEvents[dateKey] || [];
+            details.innerHTML = '';
+
+            if (!events.length) {
+                details.innerHTML = '<p class="empty-day">No events scheduled for this day.</p>';
+            } else {
+                events.forEach((event, eventIndex) => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'day-event';
+                    const time = event.time
+                        ? `<span class="day-event-time">${escapeHtml(event.time)}</span>`
+                        : '';
+                    const description = event.description
+                        ? `<div class="day-event-description">${escapeHtml(event.description)}</div>`
+                        : '';
+                    eventElement.innerHTML = `
+                        ${time}<span class="day-event-title">${escapeHtml(event.title || '')}</span>
+                        ${description}
+                    `;
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'btn-secondary';
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', async () => {
+                        await deleteEvent(dateKey, eventIndex, false);
+                        openDayDetails(dateKey, day);
+                    });
+                    eventElement.appendChild(deleteButton);
+                    details.appendChild(eventElement);
+                });
+            }
+            document.getElementById('dayDetailsPanel').classList.add('active');
+        }
+
+        function closeDayDetails() {
+            document.getElementById('dayDetailsPanel').classList.remove('active');
+        }
+
         function closeModal() {
             document.getElementById('eventModal').classList.remove('active');
         }
@@ -560,8 +763,8 @@
             }
         }
         
-        async function deleteEvent(date, index) {
-            if (!confirm('Delete this event?')) return;
+        async function deleteEvent(date, index, confirmDelete = true) {
+            if (confirmDelete && !confirm('Delete this event?')) return false;
             
             if (!validateDate(date)) {
                 alert('Invalid date');
@@ -580,16 +783,30 @@
                 }
                 
                 await loadCalendar();
+                return true;
             } catch (error) {
                 console.error('Error deleting event:', error);
                 alert('Failed to delete event. Please try again.');
+                return false;
             }
         }
         
-        function clearAllEvents() {
+        async function clearAllEvents() {
             if (!confirm('Clear all events from this calendar?')) return;
-            currentEvents = {};
-            loadCalendar();
+
+            try {
+                const response = await fetch('/api/events/clear', { method: 'DELETE' });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to clear events');
+                }
+
+                currentEvents = {};
+                await loadCalendar();
+            } catch (error) {
+                console.error('Error clearing events:', error);
+                alert(error.message || 'Failed to clear events. Please try again.');
+            }
         }
         
         function prevMonth() {
@@ -616,13 +833,13 @@
             loadCalendar();
         }
         
-        async function generateMonthlyPNG() {
+        async function generateMonthlyPNG(button = document.querySelector('.generate-btn')) {
             if (!validateMonthYear(currentMonth, currentYear)) {
                 alert('Invalid month or year');
                 return;
             }
             
-            const btn = event.target;
+            const btn = button;
             const originalText = btn.textContent;
             btn.textContent = '⏳ Generating...';
             btn.classList.add('loading');
@@ -639,14 +856,15 @@
                 
                 const blob = await response.blob();
                 
-                if (blob.type !== 'image/png') {
+                if (!['image/png', 'application/pdf'].includes(blob.type)) {
                     throw new Error('Invalid file type received');
                 }
                 
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `HackSmarter_${monthNames[currentMonth]}_${currentYear}_${theme}.png`;
+                const extension = blob.type === 'application/pdf' ? 'pdf' : 'png';
+                a.download = `HackSmarter_${monthNames[currentMonth]}_${currentYear}_${theme}.${extension}`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -667,13 +885,13 @@
             }
         }
         
-        async function generateWeeklyPNG() {
+        async function generateWeeklyPNG(button = document.querySelectorAll('.generate-btn')[1]) {
             if (!validateMonthYear(currentMonth, currentYear)) {
                 alert('Invalid month or year');
                 return;
             }
             
-            const btn = event.target;
+            const btn = button;
             const originalText = btn.textContent;
             btn.textContent = '⏳ Generating...';
             btn.classList.add('loading');
@@ -681,8 +899,16 @@
             
             try {
                 const theme = document.getElementById('themeSelect').value;
-                // Get first day of current month for weekly schedule
-                const response = await fetch(`/api/generate/weekly/${currentYear}/${currentMonth}/1?theme=${theme}`);
+                const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}-`;
+                const firstEventDate = Object.keys(currentEvents)
+                    .filter(date => date.startsWith(monthPrefix))
+                    .sort()[0];
+                const scheduleDay = firstEventDate
+                    ? Number(firstEventDate.slice(-2))
+                    : 1;
+                const response = await fetch(
+                    `/api/generate/weekly/${currentYear}/${currentMonth}/${scheduleDay}?theme=${theme}`
+                );
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -691,14 +917,15 @@
                 
                 const blob = await response.blob();
                 
-                if (blob.type !== 'image/png') {
+                if (!['image/png', 'application/pdf'].includes(blob.type)) {
                     throw new Error('Invalid file type received');
                 }
                 
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `HackSmarter_Weekly_${monthNames[currentMonth]}_${currentYear}_${theme}.png`;
+                const extension = blob.type === 'application/pdf' ? 'pdf' : 'png';
+                a.download = `HackSmarter_Weekly_${monthNames[currentMonth]}_${currentYear}_${theme}.${extension}`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -725,6 +952,7 @@
         });
         
         // Initialize
+        changeTheme();
         initCalendar();
     </script>
 </body>

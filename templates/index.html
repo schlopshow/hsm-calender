@@ -226,6 +226,52 @@
         .event-delete:hover {
             background: rgba(255, 68, 68, 0.2);
         }
+
+        .day-details-panel {
+            display: none;
+            position: relative;
+            z-index: 10;
+            margin: 0 0 18px;
+            padding: 20px;
+            background: #1a1a1a;
+            border: 2px solid var(--accent-color, #00ff88);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        .day-details-panel.active {
+            display: block;
+        }
+
+        .day-details-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            color: var(--accent-color, #00ff88);
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 14px;
+        }
+
+        .day-event {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid var(--accent-color, #00ff88);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .day-event-title {
+            color: var(--accent-color, #00ff88);
+            font-weight: bold;
+        }
+
+        .day-event-description {
+            margin-top: 6px;
+            white-space: pre-wrap;
+        }
         
         .modal {
             display: none;
@@ -267,11 +313,19 @@
         
         .form-group label {
             display: block;
+        }
+
+        .day-event {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid #00ff88;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
             margin-bottom: 8px;
             color: #888;
             font-size: 0.9em;
         }
-        
+
         .form-group input,
         .form-group textarea,
         .form-group select {
@@ -403,6 +457,14 @@
             <button onclick="clearAllEvents()" class="btn-secondary">Clear All Events</button>
         </div>
         
+        <div class="day-details-panel" id="dayDetailsPanel">
+            <div class="day-details-panel-header">
+                <span id="dayDetailsHeader">Day details</span>
+                <button type="button" class="btn-secondary" onclick="closeDayDetails()">Close</button>
+            </div>
+            <div id="dayDetails"></div>
+        </div>
+
         <div class="calendar-grid" id="calendar">
             <!-- Calendar will be generated here -->
         </div>
@@ -453,6 +515,7 @@
                 <button onclick="closeModal()" class="btn-secondary">Cancel</button>
             </div>
         </div>
+
     </div>
     
     <script>
@@ -697,6 +760,7 @@
         function renderCalendar(data) {
             const calendar = document.getElementById('calendar');
             calendar.innerHTML = '';
+            closeDayDetails();
             
             // Day headers
             const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -750,9 +814,15 @@
                                 cell.appendChild(eventDiv);
                             });
                         }
-                        
+
                         cell.addEventListener('click', function() {
-                            openModal(dateKey, day);
+                            openDayDetails(dateKey, day);
+                        });
+                        cell.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                openDayDetails(dateKey, day);
+                            }
                         });
                     }
                     
@@ -772,7 +842,42 @@
             document.getElementById('eventDescription').value = '';
             document.getElementById('eventModal').classList.add('active');
         }
-        
+
+        function openDayDetails(dateKey, day) {
+            const details = document.getElementById('dayDetails');
+            document.getElementById('dayDetailsHeader').textContent =
+                `${monthNames[currentMonth]} ${day}, ${currentYear}`;
+            details.innerHTML = '';
+            const events = currentEvents[dateKey] || [];
+            if (!events.length) {
+                details.innerHTML = '<p>No events scheduled for this day.</p>';
+            } else {
+                events.forEach((event, eventIndex) => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'day-event';
+                    eventElement.innerHTML = `
+                        <strong>${escapeHtml(formatTimeForDisplay(event.time || ''))}
+                        ${escapeHtml(event.title || '')}</strong>
+                        <p>${escapeHtml(event.description || '')}</p>
+                    `;
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'btn-secondary';
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', (eventClick) => {
+                        eventClick.stopPropagation();
+                        deleteEvent(dateKey, eventIndex);
+                    });
+                    eventElement.appendChild(deleteButton);
+                    details.appendChild(eventElement);
+                });
+            }
+            document.getElementById('dayDetailsPanel').classList.add('active');
+        }
+
+        function closeDayDetails() {
+            document.getElementById('dayDetailsPanel').classList.remove('active');
+        }
+
         function closeModal() {
             document.getElementById('eventModal').classList.remove('active');
             currentModalDate = null;

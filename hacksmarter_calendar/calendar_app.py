@@ -4,18 +4,16 @@ HackSmarter Calendar Web App
 Interactive calendar editor with event management
 """
 
-from flask import Flask, render_template, request, jsonify, send_file, abort
+from flask import Flask, render_template, request, jsonify, send_file
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import calendar
-import json
 import os
 import re
+import tempfile
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import html
@@ -25,6 +23,62 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max request size
 
 # Store events in memory (in production, use a database)
 events_store = {}
+
+
+DEFAULT_SERIES = (
+    {
+        'title': 'TCM - PNPT/PJPT Study Group',
+        'start': datetime(2026, 10, 11),
+        'time_before_dst': '14:00',
+        'time_after_dst': '14:00',
+        'description': 'Weekly PNPT/PJPT study group. Sundays at 2 PM EST.',
+    },
+    {
+        'title': 'Course Sign Up Info',
+        'start': datetime(2026, 10, 13),
+        'time_before_dst': '02:00',
+        'time_after_dst': '01:00',
+        'description': 'Course sign-up information and GitHub submission portal support.',
+    },
+    {
+        'title': 'Weekly Goal Meeting',
+        'start': datetime(2026, 10, 13),
+        'time_before_dst': '04:00',
+        'time_after_dst': '03:00',
+        'description': 'Weekly goals meeting: what did you accomplish and what are you learning next?',
+    },
+    {
+        'title': 'Weekly Goals #2',
+        'start': datetime(2026, 10, 17),
+        'time_before_dst': '21:00',
+        'time_after_dst': '20:00',
+        'description': 'Weekly goals check-in for the Hack Smarter community.',
+    },
+)
+
+
+def build_default_events():
+    """Build 13 weekly occurrences for each calendar series."""
+    generated = {}
+    daylight_saving_transition = datetime(2026, 11, 1)
+
+    for series in DEFAULT_SERIES:
+        occurrence = series['start']
+        for _ in range(13):
+            date_key = occurrence.strftime('%Y-%m-%d')
+            time_key = 'time_before_dst' if occurrence < daylight_saving_transition else 'time_after_dst'
+            generated.setdefault(date_key, []).append({
+                'title': series['title'],
+                'time': series[time_key],
+                'description': series['description'],
+            })
+            occurrence += timedelta(days=7)
+
+    return generated
+
+
+events_store.update(build_default_events())
+
 
 # Security: Input validation functions
 def sanitize_text(text, max_length=200):
@@ -132,7 +186,7 @@ class WeeklySchedule:
         png_file = self._convert_to_png(pdf_file, output_file)
         
         # Clean up PDF
-        if png_file and os.path.exists(png_file):
+        if png_file == output_file and os.path.exists(png_file):
             try:
                 os.remove(pdf_file)
             except:
@@ -440,7 +494,7 @@ class HackSmarterCalendar:
         png_file = self._convert_to_png(pdf_file, output_file)
         
         # Clean up PDF if PNG was created successfully
-        if png_file and os.path.exists(png_file):
+        if png_file == output_file and os.path.exists(png_file):
             try:
                 os.remove(pdf_file)
             except:
@@ -549,7 +603,7 @@ class HackSmarterCalendar:
                     # Draw events for this day
                     day_key = f"{self.year}-{self.month:02d}-{day:02d}"
                     if day_key in self.events:
-                        self._draw_events(c, x, y, cell_width, cell_height, 
+                        self._draw_events(c, x, y, cell_height,
                                         self.events[day_key])
                     
                     # Subtle diagonal line
@@ -565,7 +619,7 @@ class HackSmarterCalendar:
         footer_width = c.stringWidth(footer_text, "Courier", 10)
         c.drawString((self.page_width - footer_width) / 2, 0.3 * inch, footer_text)
     
-    def _draw_events(self, c, x, y, cell_width, cell_height, events):
+    def _draw_events(self, c, x, y, cell_height, events):
         """Draw events in a cell"""
         c.setFont("Helvetica", 8)
         c.setFillColor(self.event_color)
@@ -573,7 +627,7 @@ class HackSmarterCalendar:
         max_events = 4  # Show max 4 events per cell
         event_y = y + cell_height - 45
         
-        for i, event in enumerate(events[:max_events]):
+        for event in events[:max_events]:
             # Sanitize event data
             event_title = sanitize_text(event.get('title', ''), max_length=50)
             if not event_title:
@@ -647,7 +701,7 @@ def get_calendar(year, month):
             'weeks': cal,
             'events': events_store
         })
-    except Exception as e:
+    except Exception:
         return jsonify({'error': 'Failed to generate calendar'}), 500
 
 
@@ -700,7 +754,7 @@ def handle_events():
             
             return jsonify({'success': True, 'events': events_store})
         
-        except Exception as e:
+        except Exception:
             return jsonify({'error': 'Failed to add event'}), 500
     
     elif request.method == 'DELETE':
@@ -725,8 +779,16 @@ def handle_events():
             else:
                 return jsonify({'error': 'Event not found'}), 404
         
-        except Exception as e:
+        except Exception:
             return jsonify({'error': 'Failed to delete event'}), 500
+
+
+@app.route('/api/events/clear', methods=['DELETE'])
+def clear_events():
+    """Remove all events from the in-memory calendar."""
+    global events_store
+    events_store.clear()
+    return jsonify({'success': True, 'events': events_store})
 
 
 @app.route('/api/generate/weekly/<year>/<month>/<day>')
@@ -751,7 +813,7 @@ def generate_weekly_schedule(year, month, day):
         if theme not in HackSmarterCalendar.THEMES:
             theme = 'hacker_green'
         
-        output_dir = '/mnt/user-data/outputs'
+        output_dir = os.path.join(tempfile.gettempdir(), 'hacksmarter-calendar')
         os.makedirs(output_dir, exist_ok=True)
         
         # Generate filename
@@ -761,9 +823,9 @@ def generate_weekly_schedule(year, month, day):
         output_file = os.path.join(output_dir, filename)
         
         # Logo path
-        logo_path = '/mnt/user-data/uploads/3625.png'
+        logo_path = os.path.join('/mnt/user-data/uploads', '3625.png')
         if theme == 'white_minimal':
-            logo_path = '/mnt/user-data/uploads/3623.png'
+            logo_path = os.path.join('/mnt/user-data/uploads', '3623.png')
         
         # Create weekly schedule
         schedule = WeeklySchedule(start_date, events_store, theme=theme)
@@ -776,12 +838,14 @@ def generate_weekly_schedule(year, month, day):
         download_name = secure_filename(
             f'HackSmarter_Week_{start_date.strftime("%b%d")}_{theme}.png'
         )
-        
+        result_mimetype = 'image/png' if result_file.lower().endswith('.png') else 'application/pdf'
+        if result_mimetype == 'application/pdf':
+            download_name = download_name.replace('.png', '.pdf')
         return send_file(
             result_file,
             as_attachment=True,
             download_name=download_name,
-            mimetype='image/png'
+            mimetype=result_mimetype
         )
     
     except Exception as e:
@@ -802,7 +866,7 @@ def generate_calendar(year, month):
         if theme not in HackSmarterCalendar.THEMES:
             theme = 'hacker_green'
         
-        output_dir = '/mnt/user-data/outputs'
+        output_dir = os.path.join(tempfile.gettempdir(), 'hacksmarter-calendar')
         os.makedirs(output_dir, exist_ok=True)
         
         # Use secure filename with PNG extension
@@ -810,13 +874,13 @@ def generate_calendar(year, month):
         output_file = os.path.join(output_dir, filename)
         
         # Logo paths
-        logo_path_light = '/mnt/user-data/uploads/3623.png'
-        logo_path_dark = '/mnt/user-data/uploads/3625.png'
+        logo_path_light = os.path.join('/mnt/user-data/uploads', '3623.png')
+        logo_path_dark = os.path.join('/mnt/user-data/uploads', '3625.png')
         
         # Determine logo style based on theme
         logo_style = 'light' if theme == 'white_minimal' else 'dark'
         
-        cal = HackSmarterCalendar(year, month, events_store, theme=theme, logo_style=logo_style)
+        cal = HackSmarterCalendar(month, year, events_store, theme=theme, logo_style=logo_style)
         result_file = cal.create_calendar(output_file, logo_path_light, logo_path_dark)
         
         # Verify file was created
@@ -826,11 +890,16 @@ def generate_calendar(year, month):
         month_name = calendar.month_name[month]
         download_name = secure_filename(f'HackSmarter_{month_name}_{year}_{theme}.png')
         
+        result_mimetype = 'image/png' if result_file.lower().endswith('.png') else 'application/pdf'
+        download_name = (
+            download_name if result_mimetype == 'image/png'
+            else download_name.replace('.png', '.pdf')
+        )
         return send_file(
-            result_file, 
-            as_attachment=True, 
+            result_file,
+            as_attachment=True,
             download_name=download_name,
-            mimetype='image/png'
+            mimetype=result_mimetype
         )
     
     except ValueError as e:
