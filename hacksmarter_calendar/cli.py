@@ -18,63 +18,54 @@ def main():
 Examples:
   # Start the web interface (default)
   hacksmarter-calendar
-  
+
   # Start on a custom port
   hacksmarter-calendar --port 8080
-  
+
   # Start on all interfaces
   hacksmarter-calendar --host 0.0.0.0
-  
+
   # Enable debug mode
   hacksmarter-calendar --debug
-  
+
 For more information: https://github.com/hacksmarter/calendar
         """
     )
-    
+
     parser.add_argument(
         '--host',
         default='127.0.0.1',
         help='Host to bind to (default: 127.0.0.1)'
     )
-    
+
     parser.add_argument(
         '--port',
         type=int,
         default=5000,
         help='Port to bind to (default: 5000)'
     )
-    
+
     parser.add_argument(
         '--debug',
         action='store_true',
         help='Enable debug mode'
     )
-    
+
     parser.add_argument(
         '--version',
         action='version',
         version='%(prog)s 1.0.0'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Import the Flask app
     from .calendar_app import app
-    
+
     # Print startup message
-    print("🚀 Starting HackSmarter Calendar Web App...")
     print(f"📍 Open your browser to: http://{args.host}:{args.port}")
     print("⚠️  Press CTRL+C to stop the server")
-    print()
-    print("✅ Security features enabled:")
-    print("   - Input validation and sanitization")
-    print("   - XSS protection")
-    print("   - CSRF headers")
-    print("   - File size limits")
-    print("   - Rate limiting on events per day")
-    print()
-    
+
     try:
         app.run(
             debug=args.debug,
