@@ -14,6 +14,7 @@ import calendar
 import os
 import re
 import tempfile
+from uuid import uuid4
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import html
@@ -141,6 +142,101 @@ def validate_month_year(month, year):
         return True
     except (ValueError, TypeError):
         return False
+
+
+def build_recurrence_dates(start_date, frequency, interval, end_type, end_date=None,
+                           occurrence_count=None):
+    """Return the dates for a validated recurring event.
+
+    A "never" series is intentionally capped at one year so the in-memory store
+    cannot grow without bound. Users can choose a date or occurrence count for
+    longer, explicit series.
+    """
+    dates = []
+    current = start_date
+    anchor_day = start_date.day
+    limit = 52 if end_type == 'never' else (occurrence_count or 1)
+    if end_type == 'date':
+        limit = 366
+
+    while len(dates) < limit and (end_type != 'date' or current <= end_date):
+        dates.append(current)
+        if frequency == 'daily':
+            current += timedelta(days=interval)
+        elif frequency == 'weekly':
+            current += timedelta(weeks=interval)
+        elif frequency == 'monthly':
+            month_index = current.year * 12 + current.month - 1 + interval
+            year, month_index = divmod(month_index, 12)
+            month = month_index + 1
+            days_in_month = calendar.monthrange(year, month)[1]
+            if anchor_day > days_in_month:
+                # Match calendar apps' "on day N" behavior: skip months that
+                # do not contain the chosen day rather than moving the series.
+                current = current.replace(year=year, month=month, day=1)
+                while anchor_day > calendar.monthrange(current.year, current.month)[1]:
+                    month_index = current.year * 12 + current.month - 1 + interval
+                    next_year, next_month_index = divmod(month_index, 12)
+                    current = current.replace(
+                        year=next_year, month=next_month_index + 1, day=1
+                    )
+                current = current.replace(day=anchor_day)
+            else:
+                current = current.replace(year=year, month=month, day=anchor_day)
+        else:  # yearly
+            year = current.year + interval
+            day = min(current.day, calendar.monthrange(year, current.month)[1])
+            current = current.replace(year=year, day=day)
+
+    return dates
+
+
+def parse_recurrence(data, start_date):
+    """Validate recurrence form data and return its normalized representation."""
+    frequency = data.get('repeat', 'none')
+    if frequency not in {'none', 'daily', 'weekly', 'monthly', 'yearly'}:
+        raise ValueError('Invalid repeat frequency')
+    if frequency == 'none':
+        return [{'date': start_date, 'recurrence': None}]
+
+    try:
+        interval = int(data.get('repeat_interval', 1))
+    except (TypeError, ValueError):
+        raise ValueError('Repeat interval must be a number')
+    if not 1 <= interval <= 30:
+        raise ValueError('Repeat interval must be between 1 and 30')
+
+    end_type = data.get('repeat_end', 'never')
+    if end_type not in {'never', 'date', 'count'}:
+        raise ValueError('Invalid repeat end')
+
+    end_date = None
+    if end_type == 'date':
+        end_date = data.get('repeat_end_date', '')
+        if not validate_date(end_date) or datetime.strptime(end_date, '%Y-%m-%d') < start_date:
+            raise ValueError('Repeat end date must be on or after the event date')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+    occurrence_count = None
+    if end_type == 'count':
+        try:
+            occurrence_count = int(data.get('repeat_count', 1))
+        except (TypeError, ValueError):
+            raise ValueError('Number of occurrences must be a number')
+        if not 1 <= occurrence_count <= 366:
+            raise ValueError('Number of occurrences must be between 1 and 366')
+
+    recurrence = {
+        'frequency': frequency,
+        'interval': interval,
+        'end': end_type,
+    }
+    return [
+        {'date': occurrence, 'recurrence': recurrence}
+        for occurrence in build_recurrence_dates(
+            start_date, frequency, interval, end_type, end_date, occurrence_count
+        )
+    ]
 
 class WeeklySchedule:
     """Generate weekly event schedule similar to Simply Cyber style"""
@@ -738,23 +834,32 @@ def handle_events():
             
             # Sanitize description
             description = sanitize_text(data.get('description', ''), max_length=500)
-            
-            # Limit number of events per day
-            if date not in events_store:
-                events_store[date] = []
-            elif len(events_store[date]) >= 20:
+
+            start_date = datetime.strptime(date, '%Y-%m-%d')
+            occurrences = parse_recurrence(data, start_date)
+            if any(
+                len(events_store.get(item['date'].strftime('%Y-%m-%d'), [])) >= 20
+                for item in occurrences
+            ):
                 return jsonify({'error': 'Maximum 20 events per day'}), 400
-            
-            event = {
-                'title': title,
-                'time': time_str,
-                'description': description
-            }
-            
-            events_store[date].append(event)
+
+            series_id = str(uuid4()) if len(occurrences) > 1 else None
+            for item in occurrences:
+                occurrence_date = item['date'].strftime('%Y-%m-%d')
+                event = {
+                    'title': title,
+                    'time': time_str,
+                    'description': description,
+                    'series_id': series_id,
+                    'recurrence': item['recurrence'],
+                }
+                events_store.setdefault(occurrence_date, []).append(event)
             
             return jsonify({'success': True, 'events': events_store})
-        
+        except ValueError as error:
+            return jsonify({'error': str(error)}), 400
+        except (TypeError, KeyError):
+            return jsonify({'error': 'Invalid event data'}), 400
         except Exception:
             return jsonify({'error': 'Failed to add event'}), 500
     
@@ -773,9 +878,18 @@ def handle_events():
                 return jsonify({'error': 'Invalid index'}), 400
             
             if date in events_store and len(events_store[date]) > index:
-                events_store[date].pop(index)
-                if not events_store[date]:
-                    del events_store[date]
+                event = events_store[date].pop(index)
+                if data.get('delete_series') and event.get('series_id'):
+                    series_id = event['series_id']
+                    for event_date in list(events_store):
+                        events_store[event_date] = [
+                            item for item in events_store[event_date]
+                            if item.get('series_id') != series_id
+                        ]
+                        if not events_store[event_date]:
+                            del events_store[event_date]
+                if date in events_store and not events_store[date]:
+                    events_store.pop(date, None)
                 return jsonify({'success': True, 'events': events_store})
             else:
                 return jsonify({'error': 'Event not found'}), 404

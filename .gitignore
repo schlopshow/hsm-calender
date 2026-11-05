@@ -1,4 +1,4 @@
 hacksmarter_calendar.egg-info
 build
-*.pyc
-__pycache__
+__pycache__/
+*.py[cod]
